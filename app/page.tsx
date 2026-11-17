@@ -1,165 +1,119 @@
-
 "use client";
 
-import { useState } from "react";
-import { BookOpen, Plus, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import Header from "@/components/Header";
+import CreateQuizForm from "@/components/CreateQuizForm";
+import SavedQuizList from "@/components/SavedQuizList";
+import QuizAttempt from "@/components/QuizAttempt";
+
+import { createQuiz, getQuiz, getQuizzes } from "@/lib/api";
+import type { QuizCreate, QuizDetail, QuizListItem } from "@/types/quiz";
 
 export default function Home() {
-  const [title, setTitle] = useState("");
-  const [age, setAge] = useState("10");
-  const [lessonText, setLessonText] = useState("");
+  const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [openingQuiz, setOpeningQuiz] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    loadQuizzes();
+  }, []);
+
+  async function loadQuizzes() {
+    try {
+      const data = await getQuizzes();
+      setQuizzes(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load quizzes");
+    } finally {
+      setFetching(false);
+    }
+  }
+
+  async function handleGenerateQuiz(payload: QuizCreate): Promise<boolean> {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const data = await createQuiz(payload);
+      await loadQuizzes();
+      setSuccess("Quiz saved successfully.");
+      await openQuiz(data.quiz_id);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate quiz");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function openQuiz(id: number) {
+    setError("");
+    setOpeningQuiz(true);
+
+    try {
+      const data = await getQuiz(id);
+      setSelectedQuiz(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not open quiz");
+    } finally {
+      setOpeningQuiz(false);
+    }
+  }
+
+  function handleBack() {
+    setSelectedQuiz(null);
+    setError("");
+    setSuccess("");
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-800">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-indigo-600 p-2 text-white">
-              <BookOpen size={23} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">RoboKidz</h1>
-              <p className="text-xs text-gray-500">
-                AI Quiz Generator
-              </p>
-            </div>
+      <Header showBack={!!selectedQuiz} onBack={handleBack} />
+
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        {error && (
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
+        )}
 
-          <span className="rounded-full bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-600">
-            Teacher Dashboard
-          </span>
-        </div>
-      </header>
+        {success && !selectedQuiz && (
+          <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {success}
+          </div>
+        )}
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        {/* Welcome */}
-        <section className="mb-10">
-          <p className="mb-2 text-sm font-semibold text-indigo-600">
-            WELCOME TO ROBOKIDZ
-          </p>
-          <h2 className="text-3xl font-bold tracking-tight">
-            Create engaging quizzes for your students.
-          </h2>
-          <p className="mt-3 max-w-2xl text-gray-500">
-            Turn your lesson content into interactive multiple-choice
-            quizzes with the help of AI.
-          </p>
-        </section>
-
-        {/* Main Content */}
-        <div className="grid gap-6 md:grid-cols-2">
-
-          {/* Create Quiz */}
-          <section className="rounded-2xl border bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
-                <Plus size={21} />
-              </div>
-              <div>
-                <h3 className="font-semibold">Create New Quiz</h3>
-                <p className="text-sm text-gray-500">
-                  Enter your lesson details
-                </p>
-              </div>
-            </div>
-
-            <form className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Quiz Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter quiz title"
-                  className="w-full rounded-lg border px-4 py-3 text-sm outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Student Age
-                </label>
-                <select
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500"
-                >
-                  {Array.from({ length: 7 }, (_, i) => i + 8).map((n) => (
-                    <option key={n} value={n}>
-                      {n} years
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="mb-2 flex justify-between">
-                  <label className="text-sm font-medium">
-                    Lesson Content
-                  </label>
-                  <span className="text-xs text-gray-400">
-                    {lessonText.length}/5000
-                  </span>
-                </div>
-                <textarea
-                  value={lessonText}
-                  onChange={(e) => setLessonText(e.target.value)}
-                  placeholder="Paste your lesson content here..."
-                  rows={8}
-                  className="w-full resize-y rounded-lg border px-4 py-3 text-sm outline-none focus:border-indigo-500"
-                />
-                <p className="mt-2 text-xs text-gray-400">
-                  Minimum 50 and maximum 5000 characters.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-700"
-              >
-                <Sparkles size={18} />
-                Generate Quiz
-              </button>
-            </form>
-          </section>
-
-          {/* Saved Quizzes */}
-          <section className="rounded-2xl border bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold">Saved Quizzes</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Your previously created quizzes
-                </p>
-              </div>
-
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium">
-                0
-              </span>
-            </div>
-
-            <div className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed bg-gray-50 px-5 text-center">
-              <div className="mb-4 rounded-full bg-indigo-50 p-4 text-indigo-500">
-                <BookOpen size={28} />
-              </div>
-
-              <h4 className="font-semibold">No quizzes yet</h4>
-              <p className="mt-2 max-w-xs text-sm text-gray-500">
-                Your generated quizzes will appear here. Create your
-                first quiz to get started.
+        {selectedQuiz ? (
+          <QuizAttempt key={selectedQuiz.id} quiz={selectedQuiz} />
+        ) : (
+          <>
+            <section className="mb-8">
+              <h2 className="text-2xl font-bold">Lesson Quiz Generator</h2>
+              <p className="mt-2 max-w-2xl text-sm text-gray-500">
+                Paste a lesson, generate a quiz for kids aged 8-14, then attempt
+                it from the saved list.
               </p>
-            </div>
-          </section>
-        </div>
-      </div>
+            </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-white py-5 text-center text-sm text-gray-400">
-        © 2026 RoboKidz Eduventures Ltd.
-      </footer>
+            <div className="grid gap-5 md:grid-cols-2">
+              <CreateQuizForm loading={loading} onGenerate={handleGenerateQuiz} />
+              <SavedQuizList
+                quizzes={quizzes}
+                loading={fetching}
+                openingQuiz={openingQuiz}
+                onOpen={openQuiz}
+              />
+            </div>
+          </>
+        )}
+      </div>
     </main>
   );
 }

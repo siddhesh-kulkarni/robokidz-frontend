@@ -1,8 +1,14 @@
 
 export interface QuizCreate {
   title: string;
-  lesson_text: string;
   age: number;
+  lesson_text: string;
+}
+
+export interface QuizListItem {
+  id: number;
+  title: string;
+  created_at: string;
 }
 
 export interface QuizQuestion {
@@ -12,20 +18,11 @@ export interface QuizQuestion {
   correct_answer: string;
 }
 
-export interface Quiz {
-  id: number;
-  title: string;
+export interface QuizDetail extends QuizListItem {
   lesson_text: string;
   age: number;
-  created_at: string;
   updated_at: string;
   questions: QuizQuestion[];
-}
-
-export interface QuizListItem {
-  id: number;
-  title: string;
-  created_at: string;
 }
 
 export interface CreateQuizResponse {
